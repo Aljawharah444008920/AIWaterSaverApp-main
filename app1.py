@@ -8,7 +8,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-MAX_FILE_SIZE = 3 * 1024 * 1024  # 3MB لتخفيف الضغط على الاستضافة
+MAX_FILE_SIZE = 7 * 1024 * 1024  # 7MB
 
 # منطقة الاهتمام عند الحوض/الصنبور
 ROI_X1 = 80
@@ -40,7 +40,7 @@ def analyze_video(video_path):
     analyzed_frames = 0
     active_frames = 0
     idle_frames = 0
-    max_analyzed_frames = 15
+    sampling_step = 10  # تحليل كل 10 فريمات
 
     try:
         while cap.isOpened():
@@ -50,20 +50,16 @@ def analyze_video(video_path):
 
             frame_count += 1
 
-            # تحليل كل 20 فريم فقط
-            if frame_count % 20 != 0:
+            # نحلل كامل الفيديو لكن بعينات أخف
+            if frame_count % sampling_step != 0:
                 continue
-
-            if analyzed_frames >= max_analyzed_frames:
-                break
 
             analyzed_frames += 1
 
-            frame = cv2.resize(frame, (256, 192))
-
+            frame = cv2.resize(frame, (224, 168))
             h, w = frame.shape[:2]
 
-            # ضبط الـ ROI بحيث يناسب المقاس الجديد
+            # ضبط ROI على حسب المقاس الجديد
             x1 = min(ROI_X1, w - 1)
             y1 = min(ROI_Y1, h - 1)
             x2 = min(ROI_X2, w)
@@ -80,7 +76,6 @@ def analyze_video(video_path):
             motion_pixels = cv2.countNonZero(thresh)
             motion_ratio = motion_pixels / float(thresh.shape[0] * thresh.shape[1])
 
-            # وجود حركة واضحة داخل منطقة الحوض
             if motion_ratio > 0.02:
                 active_frames += 1
             else:
@@ -92,8 +87,8 @@ def analyze_video(video_path):
     finally:
         cap.release()
 
-    usage_time = round(active_frames * 20 / fps, 2)
-    waste_time = round(idle_frames * 20 / fps * 0.3, 2)
+    usage_time = round(active_frames * sampling_step / fps, 2)
+    waste_time = round(idle_frames * sampling_step / fps * 0.3, 2)
 
     used_water = round(usage_time * FLOW_RATE_LPS, 2)
     wasted_water = round(waste_time * FLOW_RATE_LPS, 2)
@@ -134,7 +129,7 @@ def upload():
         if size > MAX_FILE_SIZE:
             return render_template(
                 "upload.html",
-                error="حجم الفيديو كبير جدًا، ارفع فيديو قصير جدًا وأصغر من 3MB"
+                error="حجم الفيديو كبير جدًا، ارفعي فيديو أصغر من 7MB"
             )
 
         filepath = os.path.join(UPLOAD_FOLDER, file.filename)
