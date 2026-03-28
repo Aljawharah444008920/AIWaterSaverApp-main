@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request
 import os
 import cv2
-import mediapipe as mp
 import numpy as np
 
 app = Flask(__name__)
@@ -9,17 +8,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-
-# MediaPipe Hands
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    static_image_mode=False,
-    max_num_hands=2,
-    model_complexity=0,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
+MAX_FILE_SIZE = 3 * 1024 * 1024  # 3MB لتخفيف الضغط على الاستضافة
 
 # منطقة الاهتمام عند الحوض/الصنبور
 ROI_X1 = 80
@@ -29,32 +18,6 @@ ROI_Y2 = 420
 
 # معدل تدفق تقديري للماء (لتر/ثانية)
 FLOW_RATE_LPS = 0.10
-
-
-def point_in_roi(x, y):
-    return ROI_X1 <= x <= ROI_X2 and ROI_Y1 <= y <= ROI_Y2
-
-
-def hand_near_sink(frame_rgb, frame_w, frame_h):
-    results = hands.process(frame_rgb)
-
-    if not results.multi_hand_landmarks:
-        return False
-
-    for hand_landmarks in results.multi_hand_landmarks:
-        wrist = hand_landmarks.landmark[0]
-        index_tip = hand_landmarks.landmark[8]
-
-        points = [
-            (int(wrist.x * frame_w), int(wrist.y * frame_h)),
-            (int(index_tip.x * frame_w), int(index_tip.y * frame_h)),
-        ]
-
-        for px, py in points:
-            if point_in_roi(px, py):
-                return True
-
-    return False
 
 
 def analyze_video(video_path):
@@ -75,9 +38,9 @@ def analyze_video(video_path):
 
     frame_count = 0
     analyzed_frames = 0
-    hand_frames = 0
-    waste_frames = 0
-    max_analyzed_frames = 120
+    active_frames = 0
+    idle_frames = 0
+    max_analyzed_frames = 15
 
     try:
         while cap.isOpened():
@@ -87,8 +50,8 @@ def analyze_video(video_path):
 
             frame_count += 1
 
-            # تحليل كل 8 فريمات فقط لتخفيف الحمل
-            if frame_count % 8 != 0:
+            # تحليل كل 20 فريم فقط
+            if frame_count % 20 != 0:
                 continue
 
             if analyzed_frames >= max_analyzed_frames:
@@ -96,29 +59,32 @@ def analyze_video(video_path):
 
             analyzed_frames += 1
 
-            frame = cv2.resize(frame, (640, 480))
-            frame_h, frame_w = frame.shape[:2]
+            frame = cv2.resize(frame, (256, 192))
 
-            # قص منطقة الحوض/الصنبور
-            roi = frame[ROI_Y1:ROI_Y2, ROI_X1:ROI_X2]
+            h, w = frame.shape[:2]
 
-            # اكتشاف الحركة داخل المنطقة
+            # ضبط الـ ROI بحيث يناسب المقاس الجديد
+            x1 = min(ROI_X1, w - 1)
+            y1 = min(ROI_Y1, h - 1)
+            x2 = min(ROI_X2, w)
+            y2 = min(ROI_Y2, h)
+
+            if x2 <= x1 or y2 <= y1:
+                continue
+
+            roi = frame[y1:y2, x1:x2]
+
             fg_mask = back_sub.apply(roi)
             _, thresh = cv2.threshold(fg_mask, 200, 255, cv2.THRESH_BINARY)
 
             motion_pixels = cv2.countNonZero(thresh)
             motion_ratio = motion_pixels / float(thresh.shape[0] * thresh.shape[1])
-            motion_active = motion_ratio > 0.015
 
-            # اكتشاف اليد
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            hand_present = hand_near_sink(frame_rgb, frame_w, frame_h)
-
-            # منطق التحليل
-            if hand_present and motion_active:
-                hand_frames += 1
-            elif motion_active and not hand_present:
-                waste_frames += 1
+            # وجود حركة واضحة داخل منطقة الحوض
+            if motion_ratio > 0.02:
+                active_frames += 1
+            else:
+                idle_frames += 1
 
     except Exception as e:
         return {"error": str(e)}
@@ -126,8 +92,8 @@ def analyze_video(video_path):
     finally:
         cap.release()
 
-    usage_time = round(hand_frames * 8 / fps, 2)
-    waste_time = round(waste_frames * 8 / fps, 2)
+    usage_time = round(active_frames * 20 / fps, 2)
+    waste_time = round(idle_frames * 20 / fps * 0.3, 2)
 
     used_water = round(usage_time * FLOW_RATE_LPS, 2)
     wasted_water = round(waste_time * FLOW_RATE_LPS, 2)
@@ -168,7 +134,7 @@ def upload():
         if size > MAX_FILE_SIZE:
             return render_template(
                 "upload.html",
-                error="حجم الفيديو كبير جدًا، ارفعي فيديو أصغر من 10MB"
+                error="حجم الفيديو كبير جدًا، ارفع فيديو قصير جدًا وأصغر من 3MB"
             )
 
         filepath = os.path.join(UPLOAD_FOLDER, file.filename)
