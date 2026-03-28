@@ -10,14 +10,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 MAX_FILE_SIZE = 7 * 1024 * 1024  # 7MB
 
-# منطقة الاهتمام عند الحوض/الصنبور
-ROI_X1 = 80
-ROI_Y1 = 60
-ROI_X2 = 560
-ROI_Y2 = 420
-
-# معدل تدفق تقديري للماء (لتر/ثانية)
-FLOW_RATE_LPS = 0.10
+FLOW_RATE = 0.12  # معدل تدفق الماء (لتر/ثانية)
 
 
 def analyze_video(video_path):
@@ -28,19 +21,19 @@ def analyze_video(video_path):
         fps = 25
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    video_duration = total_frames / fps if total_frames > 0 else 0
+    duration = total_frames / fps if total_frames > 0 else 0
 
     back_sub = cv2.createBackgroundSubtractorMOG2(
-        history=100,
-        varThreshold=25,
+        history=150,
+        varThreshold=20,
         detectShadows=False
     )
 
     frame_count = 0
-    analyzed_frames = 0
     active_frames = 0
     idle_frames = 0
-    sampling_step = 10  # تحليل كل 10 فريمات
+
+    sampling_step = 5  # تحليل كل 5 فريمات
 
     try:
         while cap.isOpened():
@@ -50,23 +43,18 @@ def analyze_video(video_path):
 
             frame_count += 1
 
-            # نحلل كامل الفيديو لكن بعينات أخف
+            # تحليل كامل الفيديو لكن بعينات
             if frame_count % sampling_step != 0:
                 continue
 
-            analyzed_frames += 1
-
-            frame = cv2.resize(frame, (224, 168))
+            frame = cv2.resize(frame, (320, 240))
             h, w = frame.shape[:2]
 
-            # ضبط ROI على حسب المقاس الجديد
-            x1 = min(ROI_X1, w - 1)
-            y1 = min(ROI_Y1, h - 1)
-            x2 = min(ROI_X2, w)
-            y2 = min(ROI_Y2, h)
-
-            if x2 <= x1 or y2 <= y1:
-                continue
+            # ROI ذكي (وسط الحوض تقريبًا)
+            x1 = int(w * 0.25)
+            y1 = int(h * 0.30)
+            x2 = int(w * 0.75)
+            y2 = int(h * 0.90)
 
             roi = frame[y1:y2, x1:x2]
 
@@ -74,12 +62,17 @@ def analyze_video(video_path):
             _, thresh = cv2.threshold(fg_mask, 200, 255, cv2.THRESH_BINARY)
 
             motion_pixels = cv2.countNonZero(thresh)
-            motion_ratio = motion_pixels / float(thresh.shape[0] * thresh.shape[1])
+            total_pixels = thresh.shape[0] * thresh.shape[1]
 
-            if motion_ratio > 0.02:
-                active_frames += 1
+            motion_ratio = motion_pixels / total_pixels
+
+            # 👇 منطق ذكي محسّن
+            if motion_ratio > 0.03:
+                active_frames += 1  # استخدام فعلي
+            elif motion_ratio > 0.01:
+                idle_frames += 0.5  # حركة ضعيفة (هدر محتمل)
             else:
-                idle_frames += 1
+                idle_frames += 1  # هدر واضح
 
     except Exception as e:
         return {"error": str(e)}
@@ -88,29 +81,33 @@ def analyze_video(video_path):
         cap.release()
 
     usage_time = round(active_frames * sampling_step / fps, 2)
-    waste_time = round(idle_frames * sampling_step / fps * 0.3, 2)
+    waste_time = round(idle_frames * sampling_step / fps, 2)
 
-    used_water = round(usage_time * FLOW_RATE_LPS, 2)
-    wasted_water = round(waste_time * FLOW_RATE_LPS, 2)
+    used_water = round(usage_time * FLOW_RATE, 2)
+    wasted_water = round(waste_time * FLOW_RATE, 2)
 
-    total_measured_water = used_water + wasted_water
-    if total_measured_water > 0:
-        waste_percentage = round((wasted_water / total_measured_water) * 100, 1)
-    else:
-        waste_percentage = 0.0
+    total = used_water + wasted_water
 
+    waste_percentage = round((wasted_water / total) * 100, 1) if total > 0 else 0
     efficiency = round(100 - waste_percentage, 1)
 
+    # 👇 رسالة ذكية حسب الأداء
+    if efficiency > 80:
+        message = "استخدام ممتاز للمياه 💧"
+    elif efficiency > 50:
+        message = "يوجد هدر متوسط ⚠️"
+    else:
+        message = "هدر مرتفع يجب الانتباه 🚨"
+
     return {
-        "video_duration": round(video_duration, 2),
+        "video_duration": round(duration, 2),
         "usage_time": usage_time,
         "waste_time": waste_time,
         "used_water": used_water,
         "wasted_water": wasted_water,
         "waste_percentage": waste_percentage,
         "efficiency": efficiency,
-        "analyzed_frames": analyzed_frames,
-        "message": "تم التحليل بنجاح"
+        "message": message
     }
 
 
@@ -129,7 +126,7 @@ def upload():
         if size > MAX_FILE_SIZE:
             return render_template(
                 "upload.html",
-                error="حجم الفيديو كبير جدًا، ارفعي فيديو أصغر من 7MB"
+                error="حجم الفيديو كبير جدًا، ارفعي فيديو أقل من 7MB"
             )
 
         filepath = os.path.join(UPLOAD_FOLDER, file.filename)
@@ -147,4 +144,4 @@ def upload():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port)
