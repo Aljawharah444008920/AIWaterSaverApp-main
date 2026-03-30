@@ -14,9 +14,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 MAX_FILE_SIZE = 7 * 1024 * 1024  # 7MB
 ALLOWED_EXTENSIONS = {"mp4", "mov", "avi", "mkv", "webm"}
-
-# معدل تدفق الماء التقديري (لتر/ثانية)
-FLOW_RATE = 0.12
+FLOW_RATE = 0.12  # لتر/ثانية
 
 
 # =========================
@@ -91,8 +89,7 @@ def analyze_video(path):
     waste_frames = 0
     processed_frames = 0
 
-    # تحليل كامل الفيديو لكن كل 3 فريمات لتوازن أفضل بين الدقة والأداء
-    sampling_step = 3
+    sampling_step = 3  # تحليل الفيديو كاملًا بعينات
 
     try:
         frame_index = 0
@@ -109,11 +106,9 @@ def analyze_video(path):
 
             processed_frames += 1
 
-            # تصغير معتدل حتى ما يثقل السيرفر
             frame = cv2.resize(frame, (320, 240))
             h, w = frame.shape[:2]
 
-            # ROI أذكى: مركز-أسفل المشهد (مكان الحوض غالبًا)
             x1 = int(w * 0.22)
             y1 = int(h * 0.28)
             x2 = int(w * 0.78)
@@ -124,13 +119,10 @@ def analyze_video(path):
             gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
             gray = cv2.GaussianBlur(gray, (7, 7), 0)
 
-            # background subtraction
             fg_mask = back_sub.apply(gray)
             _, fg_thresh = cv2.threshold(fg_mask, 200, 255, cv2.THRESH_BINARY)
-            fg_thresh = cv2.morphologyEx(fg_thresh, cv2.MORPH_OPEN, None)
             fg_motion = cv2.countNonZero(fg_thresh)
 
-            # frame differencing
             diff_motion = 0
             if prev_gray is not None:
                 diff = cv2.absdiff(prev_gray, gray)
@@ -144,13 +136,8 @@ def analyze_video(path):
             fg_ratio = fg_motion / total_pixels if total_pixels else 0
             diff_ratio = diff_motion / total_pixels if total_pixels else 0
 
-            # score أدق
             motion_score = (fg_ratio * 0.6) + (diff_ratio * 0.4)
 
-            # منطق أقوى:
-            # حركة عالية = استخدام فعلي
-            # حركة متوسطة = هدر محتمل
-            # حركة منخفضة = هدر واضح
             if motion_score > 0.05:
                 active_frames += 1
             elif motion_score > 0.02:
@@ -177,7 +164,6 @@ def analyze_video(path):
     waste_percentage = round((wasted_water / total_water) * 100, 1) if total_water > 0 else 0
     efficiency = round(100 - waste_percentage, 1)
 
-    # مؤشر ثقة تقريبي
     if processed_frames >= 40:
         confidence = 90
     elif processed_frames >= 20:
@@ -287,7 +273,6 @@ def home():
         if not allowed_file(file.filename):
             return render_template("upload.html", username=session["username"], error="صيغة الملف غير مدعومة")
 
-        # تحقق الحجم
         file.seek(0, os.SEEK_END)
         size = file.tell()
         file.seek(0)
@@ -376,4 +361,5 @@ def dashboard():
 
 
 if __name__ == "__main__":
-    app.run()
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
