@@ -3,52 +3,51 @@ import os
 import cv2
 import sqlite3
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = "ai_water_saver_secret_key"
+app.secret_key = "secret123"
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 MAX_FILE_SIZE = 7 * 1024 * 1024  # 7MB
-FLOW_RATE = 0.12  # معدل تدفق الماء (لتر/ثانية)
-DB_FILE = "users.db"
+ALLOWED_EXTENSIONS = {"mp4", "mov", "avi", "mkv", "webm"}
+
+# معدل تدفق الماء التقديري (لتر/ثانية)
+FLOW_RATE = 0.12
 
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
+# =========================
+# Database
+# =========================
 def init_db():
-    conn = get_db_connection()
+    conn = sqlite3.connect("users.db")
     cur = conn.cursor()
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-        )
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT
+    )
     """)
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS analyses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            created_at TEXT NOT NULL,
-            video_duration REAL,
-            usage_time REAL,
-            waste_time REAL,
-            used_water REAL,
-            wasted_water REAL,
-            waste_percentage REAL,
-            efficiency REAL,
-            message TEXT,
-            advice TEXT,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
+    CREATE TABLE IF NOT EXISTS results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        efficiency REAL,
+        waste REAL,
+        usage_time REAL,
+        waste_time REAL,
+        used_water REAL,
+        wasted_water REAL,
+        confidence REAL,
+        advice TEXT,
+        date TEXT
+    )
     """)
 
     conn.commit()
@@ -58,8 +57,21 @@ def init_db():
 init_db()
 
 
-def analyze_video(video_path):
-    cap = cv2.VideoCapture(video_path)
+# =========================
+# Helpers
+# =========================
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+# =========================
+# Improved OpenCV analysis
+# =========================
+def analyze_video(path):
+    cap = cv2.VideoCapture(path)
+
+    if not cap.isOpened():
+        return {"error": "تعذر فتح ملف الفيديو"}
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     if not fps or fps <= 0:
@@ -69,53 +81,82 @@ def analyze_video(video_path):
     duration = total_frames / fps if total_frames > 0 else 0
 
     back_sub = cv2.createBackgroundSubtractorMOG2(
-        history=150,
-        varThreshold=20,
+        history=200,
+        varThreshold=16,
         detectShadows=False
     )
 
-    frame_count = 0
+    prev_gray = None
     active_frames = 0
-    idle_frames = 0
+    waste_frames = 0
+    processed_frames = 0
 
-    sampling_step = 5  # تحليل كل 5 فريمات
+    # تحليل كامل الفيديو لكن كل 3 فريمات لتوازن أفضل بين الدقة والأداء
+    sampling_step = 3
 
     try:
-        while cap.isOpened():
+        frame_index = 0
+
+        while True:
             ret, frame = cap.read()
             if not ret:
                 break
 
-            frame_count += 1
+            frame_index += 1
 
-            if frame_count % sampling_step != 0:
+            if frame_index % sampling_step != 0:
                 continue
 
+            processed_frames += 1
+
+            # تصغير معتدل حتى ما يثقل السيرفر
             frame = cv2.resize(frame, (320, 240))
             h, w = frame.shape[:2]
 
-            # منطقة الاهتمام في منتصف المشهد تقريبًا
-            x1 = int(w * 0.25)
-            y1 = int(h * 0.30)
-            x2 = int(w * 0.75)
-            y2 = int(h * 0.90)
+            # ROI أذكى: مركز-أسفل المشهد (مكان الحوض غالبًا)
+            x1 = int(w * 0.22)
+            y1 = int(h * 0.28)
+            x2 = int(w * 0.78)
+            y2 = int(h * 0.95)
 
             roi = frame[y1:y2, x1:x2]
 
-            fg_mask = back_sub.apply(roi)
-            _, thresh = cv2.threshold(fg_mask, 200, 255, cv2.THRESH_BINARY)
+            gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+            gray = cv2.GaussianBlur(gray, (7, 7), 0)
 
-            motion_pixels = cv2.countNonZero(thresh)
-            total_pixels = thresh.shape[0] * thresh.shape[1]
+            # background subtraction
+            fg_mask = back_sub.apply(gray)
+            _, fg_thresh = cv2.threshold(fg_mask, 200, 255, cv2.THRESH_BINARY)
+            fg_thresh = cv2.morphologyEx(fg_thresh, cv2.MORPH_OPEN, None)
+            fg_motion = cv2.countNonZero(fg_thresh)
 
-            motion_ratio = motion_pixels / total_pixels
+            # frame differencing
+            diff_motion = 0
+            if prev_gray is not None:
+                diff = cv2.absdiff(prev_gray, gray)
+                _, diff_thresh = cv2.threshold(diff, 18, 255, cv2.THRESH_BINARY)
+                diff_thresh = cv2.medianBlur(diff_thresh, 5)
+                diff_motion = cv2.countNonZero(diff_thresh)
 
-            if motion_ratio > 0.03:
+            prev_gray = gray.copy()
+
+            total_pixels = gray.shape[0] * gray.shape[1]
+            fg_ratio = fg_motion / total_pixels if total_pixels else 0
+            diff_ratio = diff_motion / total_pixels if total_pixels else 0
+
+            # score أدق
+            motion_score = (fg_ratio * 0.6) + (diff_ratio * 0.4)
+
+            # منطق أقوى:
+            # حركة عالية = استخدام فعلي
+            # حركة متوسطة = هدر محتمل
+            # حركة منخفضة = هدر واضح
+            if motion_score > 0.05:
                 active_frames += 1
-            elif motion_ratio > 0.01:
-                idle_frames += 0.5
+            elif motion_score > 0.02:
+                waste_frames += 0.5
             else:
-                idle_frames += 1
+                waste_frames += 1
 
     except Exception as e:
         return {"error": str(e)}
@@ -123,25 +164,36 @@ def analyze_video(video_path):
     finally:
         cap.release()
 
+    if processed_frames == 0:
+        return {"error": "لم يتمكن النظام من تحليل الفيديو"}
+
     usage_time = round(active_frames * sampling_step / fps, 2)
-    waste_time = round(idle_frames * sampling_step / fps, 2)
+    waste_time = round(waste_frames * sampling_step / fps, 2)
 
     used_water = round(usage_time * FLOW_RATE, 2)
     wasted_water = round(waste_time * FLOW_RATE, 2)
 
-    total = used_water + wasted_water
-    waste_percentage = round((wasted_water / total) * 100, 1) if total > 0 else 0
+    total_water = used_water + wasted_water
+    waste_percentage = round((wasted_water / total_water) * 100, 1) if total_water > 0 else 0
     efficiency = round(100 - waste_percentage, 1)
 
-    if efficiency > 80:
+    # مؤشر ثقة تقريبي
+    if processed_frames >= 40:
+        confidence = 90
+    elif processed_frames >= 20:
+        confidence = 80
+    else:
+        confidence = 70
+
+    if efficiency >= 80:
         message = "استخدام ممتاز للمياه 💧"
         advice = "استمر بنفس الطريقة، استخدامك للمياه فعّال جدًا."
-    elif efficiency > 50:
+    elif efficiency >= 50:
         message = "يوجد هدر متوسط ⚠️"
         advice = "حاول تقليل وقت فتح الماء بدون استخدام فعلي."
     else:
         message = "هدر مرتفع يجب الانتباه 🚨"
-        advice = "يجب إغلاق الماء أثناء فرك اليدين لتقليل الهدر."
+        advice = "يفضل إغلاق الماء أثناء فرك اليدين لتقليل الهدر."
 
     return {
         "video_duration": round(duration, 2),
@@ -151,63 +203,41 @@ def analyze_video(video_path):
         "wasted_water": wasted_water,
         "waste_percentage": waste_percentage,
         "efficiency": efficiency,
+        "confidence": confidence,
         "message": message,
         "advice": advice
     }
 
 
-def save_analysis(user_id, result):
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO analyses (
-            user_id, created_at, video_duration, usage_time, waste_time,
-            used_water, wasted_water, waste_percentage, efficiency, message, advice
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        user_id,
-        str(datetime.now()),
-        result["video_duration"],
-        result["usage_time"],
-        result["waste_time"],
-        result["used_water"],
-        result["wasted_water"],
-        result["waste_percentage"],
-        result["efficiency"],
-        result["message"],
-        result["advice"]
-    ))
-
-    conn.commit()
-    conn.close()
-
-
-def is_logged_in():
-    return "user_id" in session
-
-
+# =========================
+# Auth
+# =========================
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
+        user = request.form["username"].strip()
+        pw = request.form["password"].strip()
 
-        if not username or not password:
-            return render_template("register.html", error="الرجاء تعبئة جميع الحقول")
+        if len(user) < 3:
+            return render_template("register.html", error="اسم المستخدم قصير جدًا")
 
-        conn = get_db_connection()
+        if len(pw) < 6:
+            return render_template("register.html", error="كلمة المرور يجب أن تكون 6 أحرف أو أكثر")
+
+        pw_hash = generate_password_hash(pw)
+
+        conn = sqlite3.connect("users.db")
         cur = conn.cursor()
 
         try:
-            cur.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            cur.execute("INSERT INTO users (username,password) VALUES (?,?)", (user, pw_hash))
             conn.commit()
-        except sqlite3.IntegrityError:
+        except:
             conn.close()
             return render_template("register.html", error="اسم المستخدم موجود مسبقًا")
 
         conn.close()
-        return redirect(url_for("login"))
+        return redirect("/login")
 
     return render_template("register.html")
 
@@ -215,21 +245,21 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
+        user = request.form["username"].strip()
+        pw = request.form["password"].strip()
 
-        conn = get_db_connection()
+        conn = sqlite3.connect("users.db")
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
-        user = cur.fetchone()
+        cur.execute("SELECT * FROM users WHERE username=?", (user,))
+        data = cur.fetchone()
         conn.close()
 
-        if user:
-            session["user_id"] = user["id"]
-            session["username"] = user["username"]
-            return redirect(url_for("dashboard"))
+        if data and check_password_hash(data[2], pw):
+            session["user_id"] = data[0]
+            session["username"] = data[1]
+            return redirect("/")
         else:
-            return render_template("login.html", error="اسم المستخدم أو كلمة المرور غير صحيحة")
+            return render_template("login.html", error="بيانات الدخول غير صحيحة")
 
     return render_template("login.html")
 
@@ -237,91 +267,113 @@ def login():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect("/login")
 
 
+# =========================
+# Main
+# =========================
 @app.route("/", methods=["GET", "POST"])
-def upload():
-    if not is_logged_in():
-        return redirect(url_for("login"))
+def home():
+    if "user_id" not in session:
+        return redirect("/login")
 
     if request.method == "POST":
         file = request.files.get("file")
 
         if not file or file.filename == "":
-            return render_template("upload.html", error="لم يتم اختيار ملف", username=session.get("username"))
+            return render_template("upload.html", username=session["username"], error="لم يتم اختيار ملف")
 
+        if not allowed_file(file.filename):
+            return render_template("upload.html", username=session["username"], error="صيغة الملف غير مدعومة")
+
+        # تحقق الحجم
         file.seek(0, os.SEEK_END)
         size = file.tell()
         file.seek(0)
 
         if size > MAX_FILE_SIZE:
-            return render_template(
-                "upload.html",
-                error="حجم الفيديو كبير جدًا، ارفعي فيديو أقل من 7MB",
-                username=session.get("username")
-            )
+            return render_template("upload.html", username=session["username"], error="حجم الفيديو أكبر من 7MB")
 
-        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(filepath)
+        filename = secure_filename(file.filename)
+        path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(path)
 
-        result = analyze_video(filepath)
+        result = analyze_video(path)
 
         if "error" in result:
-            return render_template("upload.html", error=result["error"], username=session.get("username"))
+            return render_template("upload.html", username=session["username"], error=result["error"])
 
-        save_analysis(session["user_id"], result)
+        conn = sqlite3.connect("users.db")
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO results (
+            user_id, efficiency, waste, usage_time, waste_time,
+            used_water, wasted_water, confidence, advice, date
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,?)
+        """, (
+            session["user_id"],
+            result["efficiency"],
+            result["waste_percentage"],
+            result["usage_time"],
+            result["waste_time"],
+            result["used_water"],
+            result["wasted_water"],
+            result["confidence"],
+            result["advice"],
+            str(datetime.now())
+        ))
+        conn.commit()
+        conn.close()
 
-        return render_template("result.html", result=result, username=session.get("username"))
+        return render_template("result.html", result=result, username=session["username"])
 
-    return render_template("upload.html", username=session.get("username"))
+    return render_template("upload.html", username=session["username"])
 
 
 @app.route("/dashboard")
 def dashboard():
-    if not is_logged_in():
-        return redirect(url_for("login"))
+    if "user_id" not in session:
+        return redirect("/login")
 
-    conn = get_db_connection()
+    conn = sqlite3.connect("users.db")
     cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) AS total_users FROM users")
-    total_users = cur.fetchone()["total_users"]
+    cur.execute("SELECT COUNT(*) FROM users")
+    total_users = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) AS total_analyses FROM analyses")
-    total_analyses = cur.fetchone()["total_analyses"]
+    cur.execute("SELECT COUNT(*) FROM results")
+    total_results = cur.fetchone()[0]
+
+    cur.execute("SELECT AVG(efficiency) FROM results")
+    avg_efficiency = cur.fetchone()[0]
+    avg_efficiency = round(avg_efficiency, 1) if avg_efficiency else 0
+
+    cur.execute("SELECT AVG(waste) FROM results")
+    avg_waste = cur.fetchone()[0]
+    avg_waste = round(avg_waste, 1) if avg_waste else 0
 
     cur.execute("""
-        SELECT AVG(efficiency) AS avg_efficiency,
-               AVG(waste_percentage) AS avg_waste
-        FROM analyses
-    """)
-    stats = cur.fetchone()
-
-    cur.execute("""
-        SELECT * FROM analyses
-        WHERE user_id = ?
+        SELECT efficiency, waste, usage_time, wasted_water, confidence, date
+        FROM results
+        WHERE user_id=?
         ORDER BY id DESC
-        LIMIT 5
     """, (session["user_id"],))
-    recent_results = cur.fetchall()
+    data = cur.fetchall()
 
     conn.close()
 
-    avg_efficiency = round(stats["avg_efficiency"], 1) if stats["avg_efficiency"] is not None else 0
-    avg_waste = round(stats["avg_waste"], 1) if stats["avg_waste"] is not None else 0
-
     return render_template(
         "dashboard.html",
-        username=session.get("username"),
+        data=data,
+        username=session["username"],
         total_users=total_users,
-        total_analyses=total_analyses,
+        total_results=total_results,
         avg_efficiency=avg_efficiency,
-        avg_waste=avg_waste,
-        recent_results=recent_results
+        avg_waste=avg_waste
     )
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run()

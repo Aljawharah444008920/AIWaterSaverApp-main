@@ -1,84 +1,104 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<<!DOCTYPE html>
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول</title>
+    <title>Login - AI Water Saver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #dfe9f3, #c8f0d2);
-            font-family: Arial, sans-serif;
+        *{
+            box-sizing:border-box;
+            font-family:'Cairo',sans-serif;
         }
 
-        .card {
-            width: 100%;
-            max-width: 420px;
-            background: white;
-            border-radius: 20px;
-            padding: 35px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-            text-align: center;
+        body{
+            margin:0;
+            min-height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            background:linear-gradient(135deg,#e3f2fd,#e8f5e9);
+            padding:20px;
         }
 
-        h1 {
-            margin-bottom: 20px;
+        .card{
+            width:100%;
+            max-width:400px;
+            background:white;
+            padding:35px 30px;
+            border-radius:20px;
+            box-shadow:0 20px 40px rgba(0,0,0,0.1);
+            text-align:center;
         }
 
-        input {
-            width: 100%;
-            padding: 13px;
-            margin-bottom: 14px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            font-size: 15px;
+        h2{
+            font-size:34px;
+            margin-bottom:10px;
+            color:#1f2d3d;
         }
 
-        button {
-            width: 100%;
-            padding: 13px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 17px;
-            cursor: pointer;
+        .sub{
+            color:#666;
+            margin-bottom:22px;
         }
 
-        .error {
-            color: red;
-            margin-bottom: 12px;
+        input{
+            margin:10px 0;
+            padding:13px;
+            width:100%;
+            border:1px solid #ddd;
+            border-radius:12px;
+            font-size:15px;
         }
 
-        a {
-            display: block;
-            margin-top: 18px;
-            color: #2f80ed;
-            text-decoration: none;
+        button{
+            margin-top:12px;
+            width:100%;
+            background:linear-gradient(135deg,#2196f3,#1976d2);
+            color:white;
+            padding:13px;
+            border:none;
+            border-radius:12px;
+            font-size:17px;
+            font-weight:700;
+            cursor:pointer;
+        }
+
+        .error{
+            margin-bottom:12px;
+            background:#fdecea;
+            color:#b42318;
+            border:1px solid #f5c6cb;
+            padding:10px;
+            border-radius:10px;
+            font-size:14px;
+        }
+
+        a{
+            display:block;
+            margin-top:18px;
+            color:#1976d2;
+            text-decoration:none;
+            font-weight:700;
         }
     </style>
 </head>
 <body>
-
 <div class="card">
-    <h1>تسجيل الدخول</h1>
+    <h2>Login 💧</h2>
+    <p class="sub">سجل دخولك للوصول إلى النظام</p>
 
     {% if error %}
         <div class="error">{{ error }}</div>
     {% endif %}
 
     <form method="POST">
-        <input type="text" name="username" placeholder="اسم المستخدم" required>
-        <input type="password" name="password" placeholder="كلمة المرور" required>
-        <button type="submit">دخول</button>
+        <input name="username" placeholder="اسم المستخدم" required>
+        <input name="password" type="password" placeholder="كلمة المرور" required>
+        <button type="submit">تسجيل الدخول</button>
     </form>
 
-    <a href="{{ url_for('register') }}">إنشاء حساب جديد</a>
+    <a href="/register">إنشاء حساب جديد</a>
 </div>
-
 </body>
 </html>

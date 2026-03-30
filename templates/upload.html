@@ -3,182 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تحليل استهلاك المياه</title>
+    <title>AI Water Saver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:'Cairo',sans-serif;
         }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #dfe9f3, #c8f0d2);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+        body{
+            min-height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            background:linear-gradient(135deg,#e3f2fd,#e8f5e9);
+            padding:20px;
         }
 
-        .card {
-            width: 100%;
-            max-width: 650px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-            padding: 40px 36px;
-            text-align: center;
+        .container{
+            width:100%;
+            max-width:700px;
+            background:white;
+            padding:40px;
+            border-radius:24px;
+            box-shadow:0 20px 40px rgba(0,0,0,0.1);
+            text-align:center;
         }
 
-        h1 {
-            margin: 0 0 12px;
-            font-size: 40px;
-            color: #1f2d3d;
+        .top-bar{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            flex-wrap:wrap;
+            gap:10px;
+            margin-bottom:20px;
+            font-size:14px;
         }
 
-        .subtitle {
-            margin: 0 0 28px;
-            color: #5c6b7a;
-            font-size: 18px;
-            line-height: 1.8;
+        .top-bar a{
+            text-decoration:none;
+            color:#1976d2;
+            font-weight:700;
         }
 
-        .top-links {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 25px;
-            font-size: 15px;
+        h1{
+            font-size:42px;
+            color:#1f2d3d;
+            margin-bottom:10px;
         }
 
-        .top-links a {
-            color: #2f80ed;
-            text-decoration: none;
-            font-weight: bold;
+        .subtitle{
+            color:#666;
+            line-height:1.9;
+            font-size:17px;
+            margin-bottom:25px;
         }
 
-        .upload-box {
-            border: 2px dashed #8bc6ec;
-            border-radius: 18px;
-            padding: 28px 20px;
-            background: #f9fcff;
-            margin-bottom: 20px;
+        .upload-box{
+            margin-top:15px;
+            padding:30px;
+            border:2px dashed #90caf9;
+            border-radius:20px;
+            background:#f9fcff;
         }
 
-        input[type="file"] {
-            display: block;
-            margin: 0 auto 14px;
-            font-size: 15px;
+        input[type="file"]{
+            margin-bottom:12px;
+            font-size:15px;
         }
 
-        .hint {
-            color: #6b7280;
-            font-size: 14px;
-            line-height: 1.8;
+        .hint{
+            color:#777;
+            font-size:14px;
+            line-height:1.8;
         }
 
-        button {
-            margin-top: 22px;
-            background: linear-gradient(135deg, #3498db, #2f80ed);
-            color: white;
-            border: none;
-            padding: 14px 34px;
-            font-size: 18px;
-            border-radius: 12px;
-            cursor: pointer;
+        button{
+            margin-top:24px;
+            padding:15px 32px;
+            border:none;
+            border-radius:12px;
+            font-size:18px;
+            font-weight:700;
+            color:white;
+            cursor:pointer;
+            background:linear-gradient(135deg,#2196f3,#1976d2);
+            box-shadow:0 10px 20px rgba(33,150,243,0.3);
+            transition:0.25s;
         }
 
-        .error {
-            margin-top: 18px;
-            color: #c0392b;
-            background: #fdecea;
-            border: 1px solid #f5c6cb;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-size: 15px;
+        button:hover{
+            transform:scale(1.04);
         }
 
-        .loader-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.92);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 9999;
+        .error{
+            margin-top:18px;
+            background:#fdecea;
+            color:#b42318;
+            border:1px solid #f5c6cb;
+            padding:12px;
+            border-radius:12px;
+            font-size:15px;
         }
 
-        .spinner {
-            width: 70px;
-            height: 70px;
-            border: 8px solid #dceaf7;
-            border-top: 8px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+        .loader{
+            display:none;
+            margin-top:22px;
         }
 
-        .loading-text {
-            font-size: 22px;
-            color: #2c3e50;
-            font-weight: bold;
-            margin-bottom: 10px;
+        .spinner{
+            width:55px;
+            height:55px;
+            border:6px solid #ddd;
+            border-top:6px solid #2196f3;
+            border-radius:50%;
+            animation:spin 1s linear infinite;
+            margin:0 auto 10px;
         }
 
-        .loading-subtext {
-            color: #667085;
-            font-size: 15px;
+        @keyframes spin{
+            100%{transform:rotate(360deg);}
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @media(max-width:600px){
+            .container{
+                padding:28px 20px;
+            }
+
+            h1{
+                font-size:32px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <div class="top-links">
-            <a href="{{ url_for('dashboard') }}">لوحة التحكم</a>
-            <div>مرحبًا، {{ username }}</div>
-            <a href="{{ url_for('logout') }}">تسجيل الخروج</a>
+<div class="container">
+
+    <div class="top-bar">
+        <a href="/dashboard">لوحة التحكم</a>
+        <div>مرحبًا {{ username }}</div>
+        <a href="/logout">تسجيل الخروج</a>
+    </div>
+
+    <h1>💧 AI Water Saver</h1>
+
+    <p class="subtitle">
+        نظام ذكي لتحليل استهلاك المياه أثناء غسل اليدين واكتشاف الهدر
+        وتقديم نصائح تساعد على ترشيد الاستخدام.
+    </p>
+
+    <form method="POST" enctype="multipart/form-data" onsubmit="showLoader()">
+        <div class="upload-box">
+            <input type="file" name="file" accept="video/*" required>
+            <p class="hint">ارفع فيديو واضح لغسل اليدين بحجم لا يتجاوز 7MB</p>
         </div>
 
-        <h1>تحليل استهلاك المياه</h1>
-        <p class="subtitle">
-            ارفع فيديو لغسل اليدين ليقوم النظام بتحليل الاستخدام الفعلي والهدر
-            وتقديم نصائح ذكية لترشيد المياه.
-        </p>
+        <button type="submit">تحليل الفيديو</button>
+    </form>
 
-        <form method="POST" enctype="multipart/form-data" onsubmit="showLoader()">
-            <div class="upload-box">
-                <input type="file" name="file" accept="video/*" required>
-                <div class="hint">
-                    الحد الأقصى لحجم الفيديو: 7MB<br>
-                    يفضل أن يكون الفيديو قصيرًا وواضحًا للحصول على نتائج أفضل
-                </div>
-            </div>
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
 
-            <button type="submit">تحليل الفيديو</button>
-        </form>
-
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
-    </div>
-
-    <div class="loader-overlay" id="loader">
+    <div class="loader" id="loader">
         <div class="spinner"></div>
-        <div class="loading-text">جاري تحليل الفيديو...</div>
-        <div class="loading-subtext">قد يستغرق هذا بضع ثوانٍ، الرجاء الانتظار</div>
+        <p>جاري تحليل الفيديو...</p>
     </div>
 
-    <script>
-        function showLoader() {
-            document.getElementById("loader").style.display = "flex";
-        }
-    </script>
+</div>
+
+<script>
+function showLoader(){
+    document.getElementById("loader").style.display="block";
+}
+</script>
 
 </body>
 </html>
