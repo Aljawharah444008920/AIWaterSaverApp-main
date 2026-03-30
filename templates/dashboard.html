@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #dfe9f3, #c8f0d2);
+            font-family: Arial, sans-serif;
+            padding: 30px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 24px;
+            padding: 35px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            align-items: center;
+        }
+
+        .top a {
+            color: #2f80ed;
+            text-decoration: none;
+            font-weight: bold;
+            margin-left: 12px;
+        }
+
+        h1 {
+            margin: 0 0 25px;
+            text-align: center;
+            color: #1f2d3d;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #f8fbff;
+            border: 1px solid #e6eef5;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            color: #22313f;
+        }
+
+        .card p {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+            color: #2f80ed;
+        }
+
+        .section-title {
+            margin: 30px 0 15px;
+            font-size: 24px;
+            color: #22313f;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 14px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        th {
+            background: #f1f7fb;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-top: 18px;
+        }
+
+        @media (max-width: 900px) {
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .top {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="top">
+        <div>مرحبًا، {{ username }}</div>
+        <div>
+            <a href="{{ url_for('upload') }}">تحليل فيديو جديد</a>
+            <a href="{{ url_for('logout') }}">تسجيل الخروج</a>
+        </div>
+    </div>
+
+    <h1>لوحة التحكم</h1>
+
+    <div class="stats">
+        <div class="card">
+            <h3>عدد المستخدمين</h3>
+            <p>{{ total_users }}</p>
+        </div>
+
+        <div class="card">
+            <h3>عدد التحليلات</h3>
+            <p>{{ total_analyses }}</p>
+        </div>
+
+        <div class="card">
+            <h3>متوسط الكفاءة</h3>
+            <p>{{ avg_efficiency }}%</p>
+        </div>
+
+        <div class="card">
+            <h3>متوسط الهدر</h3>
+            <p>{{ avg_waste }}%</p>
+        </div>
+    </div>
+
+    <div class="section-title">آخر نتائجك</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>التاريخ</th>
+                <th>الكفاءة</th>
+                <th>الهدر</th>
+                <th>الماء المستخدم</th>
+                <th>الماء المهدور</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in recent_results %}
+            <tr>
+                <td>{{ row.created_at }}</td>
+                <td>{{ row.efficiency }}%</td>
+                <td>{{ row.waste_percentage }}%</td>
+                <td>{{ row.used_water }} لتر</td>
+                <td>{{ row.wasted_water }} لتر</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">لا توجد نتائج بعد</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url_for('upload') }}" class="btn">ابدأ تحليل جديد</a>
+</div>
+
+</body>
+</html>

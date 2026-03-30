@@ -1,4 +1,4 @@
-<<<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -22,8 +22,8 @@
 
         .card {
             width: 100%;
-            max-width: 620px;
-            background: rgba(255, 255, 255, 0.92);
+            max-width: 650px;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 24px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
             padding: 40px 36px;
@@ -41,6 +41,19 @@
             color: #5c6b7a;
             font-size: 18px;
             line-height: 1.8;
+        }
+
+        .top-links {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            font-size: 15px;
+        }
+
+        .top-links a {
+            color: #2f80ed;
+            text-decoration: none;
+            font-weight: bold;
         }
 
         .upload-box {
@@ -72,12 +85,6 @@
             font-size: 18px;
             border-radius: 12px;
             cursor: pointer;
-            transition: 0.2s ease;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-            opacity: 0.96;
         }
 
         .error {
@@ -127,29 +134,21 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        @media (max-width: 640px) {
-            .card {
-                padding: 28px 20px;
-            }
-
-            h1 {
-                font-size: 30px;
-            }
-
-            .subtitle {
-                font-size: 16px;
-            }
-        }
     </style>
 </head>
 <body>
 
     <div class="card">
+        <div class="top-links">
+            <a href="{{ url_for('dashboard') }}">لوحة التحكم</a>
+            <div>مرحبًا، {{ username }}</div>
+            <a href="{{ url_for('logout') }}">تسجيل الخروج</a>
+        </div>
+
         <h1>تحليل استهلاك المياه</h1>
         <p class="subtitle">
             ارفع فيديو لغسل اليدين ليقوم النظام بتحليل الاستخدام الفعلي والهدر
-            وإظهار مؤشرات ذكية عن كفاءة استهلاك الماء.
+            وتقديم نصائح ذكية لترشيد المياه.
         </p>
 
         <form method="POST" enctype="multipart/form-data" onsubmit="showLoader()">

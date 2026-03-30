@@ -27,6 +27,19 @@
             padding: 40px 36px;
         }
 
+        .top-links {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            font-size: 15px;
+        }
+
+        .top-links a {
+            color: #2f80ed;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
         h1 {
             text-align: center;
             font-size: 42px;
@@ -93,27 +106,42 @@
             text-align: center;
             padding: 14px;
             border-radius: 10px;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             font-size: 17px;
         }
 
         .btn {
-            display: block;
+            display: inline-block;
             text-align: center;
             background: #27ae60;
             color: white;
-            padding: 14px;
+            padding: 14px 20px;
             border-radius: 10px;
             text-decoration: none;
             font-size: 18px;
+            margin: 8px;
         }
 
+        .actions {
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
-
 <body>
 
 <div class="container">
+    <div class="top-links">
+        <a href="{{ url_for('dashboard') }}">لوحة التحكم</a>
+        <div>مرحبًا، {{ username }}</div>
+        <a href="{{ url_for('logout') }}">تسجيل الخروج</a>
+    </div>
+
     <h1>نتائج تحليل استهلاك المياه</h1>
 
     <div class="grid">
@@ -150,7 +178,6 @@
 
     <div class="section-title">كفاءة الاستخدام</div>
 
-    <!-- تحديد اللون حسب النتيجة -->
     {% if result.efficiency > 80 %}
         {% set color = "#27ae60" %}
         {% set bg = "#eafaf1" %}
@@ -174,7 +201,14 @@
         {{ result.message }}
     </div>
 
-    <a href="/" class="btn">تحليل فيديو جديد</a>
+    <div class="message" style="background:#eef6ff; color:#2c3e50;">
+        💡 نصيحة: {{ result.advice }}
+    </div>
+
+    <div class="actions">
+        <a href="{{ url_for('upload') }}" class="btn">تحليل فيديو جديد</a>
+        <a href="{{ url_for('dashboard') }}" class="btn">العودة للوحة التحكم</a>
+    </div>
 
 </div>
 
