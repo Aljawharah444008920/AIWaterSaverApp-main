@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, session
 import os
 import cv2
 import sqlite3
@@ -78,6 +78,11 @@ def analyze_video(path):
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     duration = total_frames / fps if total_frames > 0 else 0
 
+    max_duration = 15  # ثواني
+    if duration > max_duration:
+        cap.release()
+        return {"error": "الفيديو طويل، الحد الأقصى 15 ثانية"}
+
     back_sub = cv2.createBackgroundSubtractorMOG2(
         history=200,
         varThreshold=16,
@@ -89,7 +94,7 @@ def analyze_video(path):
     waste_frames = 0
     processed_frames = 0
 
-    sampling_step = 3  # تحليل الفيديو كاملًا بعينات
+    sampling_step = 6  # أخف على السيرفر
 
     try:
         frame_index = 0
@@ -106,9 +111,11 @@ def analyze_video(path):
 
             processed_frames += 1
 
-            frame = cv2.resize(frame, (320, 240))
+            # تصغير أكبر لتخفيف الحمل
+            frame = cv2.resize(frame, (240, 180))
             h, w = frame.shape[:2]
 
+            # ROI في منتصف وأسفل المشهد
             x1 = int(w * 0.22)
             y1 = int(h * 0.28)
             x2 = int(w * 0.78)
@@ -164,9 +171,9 @@ def analyze_video(path):
     waste_percentage = round((wasted_water / total_water) * 100, 1) if total_water > 0 else 0
     efficiency = round(100 - waste_percentage, 1)
 
-    if processed_frames >= 40:
+    if processed_frames >= 25:
         confidence = 90
-    elif processed_frames >= 20:
+    elif processed_frames >= 12:
         confidence = 80
     else:
         confidence = 70
@@ -285,6 +292,12 @@ def home():
         file.save(path)
 
         result = analyze_video(path)
+
+        # حذف الملف بعد التحليل لتخفيف التخزين
+        try:
+            os.remove(path)
+        except:
+            pass
 
         if "error" in result:
             return render_template("upload.html", username=session["username"], error=result["error"])
