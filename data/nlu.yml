@@ -1,0 +1,17 @@
+version: "3.1"
+nlu:
+- intent: greet
+  examples: |
+    - مرحبًا
+    - أهلاً
+    - هلا
+- intent: goodbye
+  examples: |
+    - مع السلامة
+    - باي
+    - أراك لاحقًا
+- intent: check_water_usage
+  examples: |
+    - أرني كمية استهلاك الماء
+    - تحليل الفيديو
+    - كم استهلكت من الماء؟

@@ -1,0 +1,19 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - check_water_usage
+
+entities: []
+
+slots: {}
+
+responses:
+  utter_greet:
+    - text: "مرحبًا! كيف أقدر أساعدك اليوم؟"
+  utter_goodbye:
+    - text: "مع السلامة! 💧"
+    
+actions:
+  - action_check_water_usage

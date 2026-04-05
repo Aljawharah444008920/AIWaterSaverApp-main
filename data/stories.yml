@@ -1,0 +1,8 @@
+version: "3.1"
+stories:
+- story: greet and check usage
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: check_water_usage
+  - action: action_check_water_usage
