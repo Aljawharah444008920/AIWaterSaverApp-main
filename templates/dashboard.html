@@ -1,167 +1,266 @@
-<<!DOCTYPE html>
-<html lang="ar">
+<<!<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - AI Water Saver</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+    <title>لوحة التحكم - Ai Water Saver</title>
     <style>
-        *{
-            box-sizing:border-box;
-            font-family:'Cairo',sans-serif;
+        :root{
+            --bg1:#eef8ff;
+            --bg2:#f8fdff;
+            --primary:#1177cc;
+            --accent:#12b4d8;
+            --text:#163650;
+            --muted:#708397;
+            --border:rgba(17,119,204,0.12);
+            --shadow:0 20px 60px rgba(17,119,204,0.10);
         }
 
+        *{box-sizing:border-box}
         body{
             margin:0;
-            background:linear-gradient(135deg,#e3f2fd,#e8f5e9);
-            padding:30px;
+            font-family:Tahoma, Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(18,180,216,0.14), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(17,119,204,0.10), transparent 35%),
+                linear-gradient(135deg, var(--bg1), var(--bg2));
+            color:var(--text);
+            min-height:100vh;
         }
 
         .container{
-            max-width:1100px;
-            margin:auto;
-            background:white;
-            border-radius:24px;
-            padding:30px;
-            box-shadow:0 20px 40px rgba(0,0,0,0.1);
+            width:min(1180px, 92%);
+            margin:0 auto;
+            padding:24px 0 36px;
         }
 
-        .top{
+        .nav{
             display:flex;
             justify-content:space-between;
             align-items:center;
             flex-wrap:wrap;
-            gap:10px;
-            margin-bottom:20px;
+            gap:12px;
+            margin-bottom:24px;
         }
 
-        .top a{
-            color:#1976d2;
+        .brand{
+            display:flex;
+            align-items:center;
+            gap:12px;
+            font-weight:800;
+            font-size:1.1rem;
+        }
+
+        .brand-badge{
+            width:44px;
+            height:44px;
+            border-radius:14px;
+            background:linear-gradient(135deg, var(--primary), var(--accent));
+            display:grid;
+            place-items:center;
+            color:#fff;
+            box-shadow:0 12px 28px rgba(17,119,204,0.25);
+        }
+
+        .nav-links{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            align-items:center;
+        }
+
+        .btn{
             text-decoration:none;
+            color:var(--text);
+            padding:10px 16px;
+            border-radius:999px;
+            border:1px solid var(--border);
+            background:#fff;
             font-weight:700;
         }
 
-        h1{
-            margin:0 0 20px;
-            color:#1f2d3d;
+        .hero{
+            background:rgba(255,255,255,0.88);
+            border-radius:30px;
+            padding:30px;
+            box-shadow:var(--shadow);
+            margin-bottom:22px;
         }
 
-        .cards{
+        .hero h1{
+            margin:0 0 8px;
+            font-size:2rem;
+        }
+
+        .hero p{
+            margin:0;
+            color:var(--muted);
+            line-height:1.8;
+        }
+
+        .stats{
             display:grid;
             grid-template-columns:repeat(4,1fr);
             gap:16px;
-            margin-bottom:25px;
+            margin:22px 0;
         }
 
-        .card{
-            background:#f8fbff;
-            padding:20px;
-            border-radius:18px;
-            text-align:center;
-            box-shadow:0 8px 20px rgba(0,0,0,0.05);
+        .stat{
+            background:rgba(255,255,255,0.88);
+            border-radius:24px;
+            padding:22px;
+            box-shadow:var(--shadow);
         }
 
-        .card h3{
-            margin:0 0 10px;
-            color:#2c3e50;
-            font-size:18px;
+        .stat .label{
+            color:var(--muted);
+            font-size:0.92rem;
+            margin-bottom:8px;
         }
 
-        .card p{
-            margin:0;
-            font-size:28px;
-            font-weight:800;
-            color:#1976d2;
+        .stat .value{
+            font-size:2rem;
+            font-weight:900;
+        }
+
+        .table-card{
+            background:rgba(255,255,255,0.88);
+            border-radius:30px;
+            padding:24px;
+            box-shadow:var(--shadow);
+        }
+
+        .table-card h2{
+            margin:0 0 16px;
+        }
+
+        .table-wrap{
+            overflow:auto;
         }
 
         table{
             width:100%;
-            background:white;
-            border-radius:16px;
-            overflow:hidden;
             border-collapse:collapse;
+            min-width:760px;
         }
 
-        td,th{
-            padding:12px;
-            text-align:center;
-            border-bottom:1px solid #eee;
+        th, td{
+            text-align:right;
+            padding:14px 12px;
+            border-bottom:1px solid rgba(17,119,204,0.10);
+            font-size:0.95rem;
         }
 
         th{
-            background:#f5faff;
+            color:var(--muted);
+            font-weight:800;
         }
 
-        @media(max-width:900px){
-            .cards{
-                grid-template-columns:repeat(2,1fr);
+        .pill{
+            display:inline-block;
+            padding:8px 12px;
+            border-radius:999px;
+            font-weight:800;
+            font-size:0.85rem;
+        }
+
+        .good{background:#e9fbf5; color:#0f9d7a;}
+        .mid{background:#fff6e7; color:#f39c12;}
+        .bad{background:#fdeceb; color:#e74c3c;}
+
+        @media (max-width: 960px){
+            .stats{
+                grid-template-columns:1fr 1fr;
             }
         }
 
-        @media(max-width:600px){
-            .cards{
+        @media (max-width: 620px){
+            .stats{
                 grid-template-columns:1fr;
             }
         }
     </style>
 </head>
 <body>
-
-<div class="container">
-
-    <div class="top">
-        <div>
-            <h1>Dashboard</h1>
-            <p>مرحبًا {{ username }}</p>
+    <div class="container">
+        <div class="nav">
+            <div class="brand">
+                <div class="brand-badge">💧</div>
+                <div>Ai Water Saver</div>
+            </div>
+            <div class="nav-links">
+                <span>مرحبًا، <strong>{{ username }}</strong></span>
+                <a class="btn" href="/">تحليل جديد</a>
+                <a class="btn" href="/logout">تسجيل الخروج</a>
+            </div>
         </div>
-        <div>
-            <a href="/">تحليل جديد</a> |
-            <a href="/logout">تسجيل خروج</a>
+
+        <div class="hero">
+            <h1>لوحة التحكم الذكية</h1>
+            <p>
+                راجع سجل التحليلات السابقة وتابع مدى كفاءة استخدام المياه بمرور الوقت.
+            </p>
         </div>
+
+        <section class="stats">
+            <div class="stat">
+                <div class="label">إجمالي المستخدمين</div>
+                <div class="value">{{ total_users }}</div>
+            </div>
+            <div class="stat">
+                <div class="label">إجمالي التحليلات</div>
+                <div class="value">{{ total_results }}</div>
+            </div>
+            <div class="stat">
+                <div class="label">متوسط الكفاءة</div>
+                <div class="value">{{ avg_efficiency }}%</div>
+            </div>
+            <div class="stat">
+                <div class="label">متوسط الهدر</div>
+                <div class="value">{{ avg_waste }}%</div>
+            </div>
+        </section>
+
+        <section class="table-card">
+            <h2>سجل التحليلات</h2>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الكفاءة</th>
+                            <th>الهدر %</th>
+                            <th>وقت الاستخدام</th>
+                            <th>الماء المهدور (لتر)</th>
+                            <th>الثقة</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                        <tr>
+                            <td>{{ row[0] }}%</td>
+                            <td>{{ row[1] }}%</td>
+                            <td>{{ row[2] }} ث</td>
+                            <td>{{ row[3] }} لتر</td>
+                            <td>{{ row[4] }}%</td>
+                            <td>{{ row[5] }}</td>
+                            <td>
+                                {% if row[0] >= 80 %}
+                                    <span class="pill good">ممتاز</span>
+                                {% elif row[0] >= 50 %}
+                                    <span class="pill mid">متوسط</span>
+                                {% else %}
+                                    <span class="pill bad">يحتاج تحسين</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
-
-    <div class="cards">
-        <div class="card">
-            <h3>عدد المستخدمين</h3>
-            <p>{{ total_users }}</p>
-        </div>
-        <div class="card">
-            <h3>عدد التحليلات</h3>
-            <p>{{ total_results }}</p>
-        </div>
-        <div class="card">
-            <h3>متوسط الكفاءة</h3>
-            <p>{{ avg_efficiency }}%</p>
-        </div>
-        <div class="card">
-            <h3>متوسط الهدر</h3>
-            <p>{{ avg_waste }}%</p>
-        </div>
-    </div>
-
-    <table>
-        <tr>
-            <th>الكفاءة</th>
-            <th>الهدر</th>
-            <th>وقت الاستخدام</th>
-            <th>الماء المهدور</th>
-            <th>الثقة</th>
-            <th>التاريخ</th>
-        </tr>
-
-        {% for r in data %}
-        <tr>
-            <td>{{ r[0] }}%</td>
-            <td>{{ r[1] }}%</td>
-            <td>{{ r[2] }} ث</td>
-            <td>{{ r[3] }} لتر</td>
-            <td>{{ r[4] }}%</td>
-            <td>{{ r[5] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
-</div>
-
 </body>
 </html>

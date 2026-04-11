@@ -3,256 +3,497 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نتيجة التحليل - AI Water Saver</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+    <title>نتيجة التحليل - Ai Water Saver</title>
     <style>
-        *{
-            box-sizing:border-box;
-            font-family:'Cairo',sans-serif;
+        :root{
+            --bg1:#eef8ff;
+            --bg2:#f8fdff;
+            --primary:#1177cc;
+            --text:#163650;
+            --muted:#677c90;
+            --card:rgba(255,255,255,0.88);
+            --border:rgba(17,119,204,0.12);
+            --shadow:0 20px 60px rgba(17,119,204,0.10);
         }
 
+        *{box-sizing:border-box}
         body{
             margin:0;
+            font-family:Tahoma, Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(18,180,216,0.14), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(17,119,204,0.10), transparent 35%),
+                linear-gradient(135deg, var(--bg1), var(--bg2));
+            color:var(--text);
             min-height:100vh;
-            background:linear-gradient(135deg,#e3f2fd,#e8f5e9);
-            padding:30px;
         }
 
         .container{
-            max-width:1000px;
-            margin:auto;
-            background:white;
-            border-radius:24px;
-            padding:35px;
-            box-shadow:0 20px 40px rgba(0,0,0,0.1);
+            width:min(1180px, 92%);
+            margin:0 auto;
+            padding:24px 0 36px;
         }
 
-        .top-bar{
+        .nav{
             display:flex;
             justify-content:space-between;
             align-items:center;
             flex-wrap:wrap;
-            gap:10px;
-            margin-bottom:20px;
+            gap:12px;
+            margin-bottom:24px;
         }
 
-        .top-bar a{
+        .brand{
+            display:flex;
+            align-items:center;
+            gap:12px;
+            font-weight:800;
+            font-size:1.1rem;
+        }
+
+        .brand-badge{
+            width:44px;
+            height:44px;
+            border-radius:14px;
+            background:linear-gradient(135deg, #1177cc, #12b4d8);
+            display:grid;
+            place-items:center;
+            color:#fff;
+            box-shadow:0 12px 28px rgba(17,119,204,0.25);
+        }
+
+        .nav-links{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .nav-links a, .nav-links span{
             text-decoration:none;
-            color:#1976d2;
+            color:var(--text);
+            font-size:0.95rem;
+        }
+
+        .btn{
+            padding:10px 16px;
+            border-radius:999px;
+            border:1px solid var(--border);
+            background:#fff;
             font-weight:700;
+            transition:0.25s ease;
+        }
+
+        .btn:hover{
+            transform:translateY(-2px);
+            box-shadow:var(--shadow);
+        }
+
+        .hero{
+            display:grid;
+            grid-template-columns:0.95fr 1.05fr;
+            gap:24px;
+            margin-bottom:24px;
+        }
+
+        .card{
+            background:var(--card);
+            border:1px solid rgba(255,255,255,0.55);
+            backdrop-filter:blur(10px);
+            border-radius:30px;
+            box-shadow:var(--shadow);
+        }
+
+        .score-card{
+            padding:30px;
+            animation:fadeUp 0.8s ease;
+        }
+
+        .summary-card{
+            padding:30px;
+            animation:fadeUp 1s ease;
+        }
+
+        @keyframes fadeUp{
+            from{opacity:0; transform:translateY(24px);}
+            to{opacity:1; transform:translateY(0);}
+        }
+
+        .eyebrow{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:9px 14px;
+            border-radius:999px;
+            background:rgba(17,119,204,0.08);
+            color:#1177cc;
+            font-weight:700;
+            font-size:0.9rem;
+            margin-bottom:16px;
         }
 
         h1{
+            margin:0 0 10px;
+            font-size:2.2rem;
+        }
+
+        .sub{
+            margin:0 0 24px;
+            color:var(--muted);
+            line-height:1.8;
+        }
+
+        .score-ring-wrap{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            margin:22px 0 12px;
+        }
+
+        .score-ring{
+            width:220px;
+            height:220px;
+            border-radius:50%;
+            background:conic-gradient(var(--score-color) calc(var(--percent) * 1%), #e8f1f7 0);
+            display:grid;
+            place-items:center;
+            position:relative;
+            transition:1.2s ease;
+            box-shadow:inset 0 0 30px rgba(0,0,0,0.03);
+        }
+
+        .score-ring::before{
+            content:"";
+            position:absolute;
+            inset:16px;
+            background:#fff;
+            border-radius:50%;
+        }
+
+        .score-content{
+            position:relative;
             text-align:center;
-            font-size:40px;
-            color:#1f2d3d;
-            margin-bottom:30px;
+            z-index:1;
+        }
+
+        .score-number{
+            font-size:3rem;
+            font-weight:900;
+            color:var(--score-color);
+            line-height:1;
+        }
+
+        .score-label{
+            margin-top:8px;
+            font-size:0.98rem;
+            color:var(--muted);
+            font-weight:700;
+        }
+
+        .status-pill{
+            margin:16px auto 0;
+            width:max-content;
+            padding:10px 16px;
+            border-radius:999px;
+            background:var(--score-bg);
+            color:var(--score-color);
+            font-weight:800;
+        }
+
+        .message-box{
+            margin-top:20px;
+            padding:18px;
+            border-radius:22px;
+            background:#fff;
+            border:1px solid var(--border);
+        }
+
+        .message-box strong{
+            display:block;
+            margin-bottom:8px;
+            font-size:1rem;
+        }
+
+        .message-box p{
+            margin:0;
+            color:var(--muted);
+            line-height:1.8;
         }
 
         .grid{
             display:grid;
-            grid-template-columns:repeat(3,1fr);
-            gap:18px;
-            margin-bottom:30px;
+            grid-template-columns:repeat(4,1fr);
+            gap:16px;
+            margin-bottom:24px;
         }
 
-        .box{
-            background:#f8fbff;
-            border:1px solid #e4eef8;
-            border-radius:18px;
+        .metric{
             padding:22px;
-            text-align:center;
+            border-radius:24px;
+            background:var(--card);
+            border:1px solid rgba(255,255,255,0.55);
+            box-shadow:var(--shadow);
+            animation:fadeUp 0.95s ease;
         }
 
-        .box h3{
-            margin:0 0 10px;
-            color:#2c3e50;
-            font-size:22px;
+        .metric .label{
+            color:var(--muted);
+            font-size:0.92rem;
+            margin-bottom:8px;
         }
 
-        .box p{
-            margin:0;
-            font-size:26px;
-            font-weight:800;
-            color:#34495e;
-        }
-
-        .section-title{
-            text-align:center;
-            font-size:30px;
-            margin:25px 0 10px;
-            color:#1f2d3d;
-            font-weight:800;
-        }
-
-        .efficiency{
-            text-align:center;
-            font-size:68px;
+        .metric .value{
+            font-size:1.8rem;
             font-weight:900;
-            margin-bottom:14px;
+            margin-bottom:8px;
         }
 
-        .bar{
+        .metric .small{
+            color:var(--muted);
+            line-height:1.7;
+            font-size:0.9rem;
+        }
+
+        .bars-card{
+            padding:26px;
+            margin-bottom:24px;
+            animation:fadeUp 1.1s ease;
+        }
+
+        .bar-wrap{
+            margin-bottom:18px;
+        }
+
+        .bar-head{
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:8px;
+            font-weight:700;
+        }
+
+        .track{
             width:100%;
-            height:28px;
-            background:#eaeaea;
+            height:16px;
             border-radius:999px;
+            background:#eaf2f8;
             overflow:hidden;
-            margin-bottom:25px;
         }
 
-        .bar-fill{
+        .fill{
             height:100%;
             border-radius:999px;
+            width:0;
+            transition:1.3s ease;
         }
 
-        .message{
-            text-align:center;
-            padding:14px;
-            border-radius:12px;
-            margin-bottom:14px;
-            font-size:17px;
-            font-weight:700;
+        .fill.used{background:linear-gradient(90deg, #12b4d8, #0f9d7a);}
+        .fill.waste{background:linear-gradient(90deg, #f39c12, #e74c3c);}
+
+        .info-grid{
+            display:grid;
+            grid-template-columns:1fr 1fr 1fr;
+            gap:16px;
         }
 
-        .tip{
-            text-align:center;
-            background:#eef6ff;
-            color:#2c3e50;
-            border:1px solid #d9ecff;
-            padding:14px;
-            border-radius:12px;
-            margin-bottom:14px;
-            font-size:16px;
+        .info-box{
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:24px;
+            padding:22px;
         }
 
-        .confidence{
-            text-align:center;
-            background:#f4f6f8;
-            color:#333;
-            border:1px solid #e0e0e0;
-            padding:14px;
-            border-radius:12px;
-            margin-bottom:22px;
-            font-size:16px;
-            font-weight:700;
+        .info-box h3{
+            margin:0 0 10px;
+            font-size:1.05rem;
+        }
+
+        .info-box p{
+            margin:0;
+            color:var(--muted);
+            line-height:1.8;
         }
 
         .actions{
-            text-align:center;
+            display:flex;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-top:24px;
         }
 
-        .btn{
-            display:inline-block;
-            margin:8px;
-            padding:14px 24px;
-            border-radius:12px;
-            text-decoration:none;
-            color:white;
-            font-size:17px;
-            font-weight:700;
-            background:linear-gradient(135deg,#27ae60,#1e8449);
-            box-shadow:0 10px 20px rgba(39,174,96,0.25);
+        .primary-btn{
+            background:linear-gradient(135deg, #1177cc, #12b4d8);
+            color:#fff !important;
+            border:none;
         }
 
-        @media(max-width:850px){
-            .grid{
+        @media (max-width: 980px){
+            .hero{
                 grid-template-columns:1fr;
             }
 
-            h1{
-                font-size:32px;
+            .grid{
+                grid-template-columns:1fr 1fr;
             }
 
-            .efficiency{
-                font-size:54px;
+            .info-grid{
+                grid-template-columns:1fr;
+            }
+        }
+
+        @media (max-width: 620px){
+            .grid{
+                grid-template-columns:1fr;
             }
         }
     </style>
 </head>
-<body>
-
-<div class="container">
-
-    <div class="top-bar">
-        <a href="/dashboard">لوحة التحكم</a>
-        <div>مرحبًا {{ username }}</div>
-        <a href="/logout">تسجيل الخروج</a>
-    </div>
-
-    <h1>نتيجة التحليل</h1>
-
-    <div class="grid">
-        <div class="box">
-            <h3>مدة الفيديو</h3>
-            <p>{{ result.video_duration }} ث</p>
+<body style="--score-color: {{ result.score_color }}; --score-bg: {{ result.score_bg }}; --percent: {{ result.efficiency }};">
+    <div class="container">
+        <div class="nav">
+            <div class="brand">
+                <div class="brand-badge">💧</div>
+                <div> Ai Water Saver</div>
+            </div>
+            <div class="nav-links">
+                <span>مرحبًا، <strong>{{ username }}</strong></span>
+                <a class="btn" href="/dashboard">لوحة التحكم</a>
+                <a class="btn" href="/">تحليل جديد</a>
+                <a class="btn" href="/logout">تسجيل الخروج</a>
+            </div>
         </div>
 
-        <div class="box">
-            <h3>وقت الاستخدام</h3>
-            <p>{{ result.usage_time }} ث</p>
-        </div>
+        <section class="hero">
+            <div class="card score-card">
+                <div class="eyebrow">اكتمل التحليل</div>
+                <h1>درجة كفاءة استخدام المياه</h1>
+                <p class="sub">
+                    هذه النتيجة تلخص مدى كفاءة استخدام المياه أثناء جلسة غسل اليدين التي تم رفعها.
+                </p>
 
-        <div class="box">
-            <h3>وقت الهدر</h3>
-            <p>{{ result.waste_time }} ث</p>
-        </div>
+                <div class="score-ring-wrap">
+                    <div class="score-ring">
+                        <div class="score-content">
+                            <div class="score-number" id="scoreCounter">0</div>
+                            <div class="score-label">من 100</div>
+                        </div>
+                    </div>
+                </div>
 
-        <div class="box">
-            <h3>الماء المستخدم</h3>
-            <p>{{ result.used_water }} لتر</p>
-        </div>
+                <div class="status-pill">{{ result.status_ar }}</div>
 
-        <div class="box">
-            <h3>الماء المهدور</h3>
-            <p>{{ result.wasted_water }} لتر</p>
-        </div>
+                <div class="message-box">
+                    <strong>{{ result.message }}</strong>
+                    <p>{{ result.meaning }}</p>
+                </div>
+            </div>
 
-        <div class="box">
-            <h3>نسبة الهدر</h3>
-            <p>{{ result.waste_percentage }}%</p>
-        </div>
+            <div class="card summary-card">
+                <div class="eyebrow">أثر الاستدامة</div>
+                <h2 style="margin:0 0 12px; font-size:1.8rem;">ماذا تعني هذه النتيجة؟</h2>
+                <p class="sub" style="margin-bottom:18px;">
+                    {{ result.impact }}
+                </p>
+
+                <div class="info-grid">
+                    <div class="info-box">
+                        <h3>التوصية المقترحة</h3>
+                        <p>{{ result.advice }}</p>
+                    </div>
+                    <div class="info-box">
+                        <h3>كمية التوفير المتوقعة</h3>
+                        <p>يمكن تقليل ما يصل إلى <strong>{{ result.estimated_saving_liters }} لتر</strong> من هذه الجلسة عند تحسين عادة واحدة فقط.</p>
+                    </div>
+                    <div class="info-box">
+                        <h3>مستوى الثقة</h3>
+                        <p>مستوى الثقة الحالي في التحليل هو <strong>{{ result.confidence }}%</strong>.</p>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <a class="btn primary-btn" href="/">تحليل فيديو آخر</a>
+                    <a class="btn" href="/dashboard">فتح لوحة التحكم</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid">
+            <div class="metric">
+                <div class="label">مدة الفيديو</div>
+                <div class="value">{{ result.video_duration }} ث</div>
+                <div class="small">إجمالي مدة الجلسة التي تمت معالجتها من قبل النظام.</div>
+            </div>
+
+            <div class="metric">
+                <div class="label">وقت الاستخدام الفعلي</div>
+                <div class="value">{{ result.usage_time }} ث</div>
+                <div class="small">الوقت الذي بدا فيه استخدام الماء فعّالًا ومرتبطًا بغسل اليدين.</div>
+            </div>
+
+            <div class="metric">
+                <div class="label">المياه المستخدمة</div>
+                <div class="value">{{ result.used_water }} لتر</div>
+                <div class="small">كمية المياه المقدرة أثناء فترات الاستخدام الفعلي.</div>
+            </div>
+
+            <div class="metric">
+                <div class="label">المياه المهدورة</div>
+                <div class="value">{{ result.wasted_water }} لتر</div>
+                <div class="small">كمية المياه المقدرة أثناء فترات التدفق غير الضروري.</div>
+            </div>
+        </section>
+
+        <section class="card bars-card">
+            <div class="eyebrow">ملخص بصري</div>
+            <h2 style="margin:0 0 20px; font-size:1.7rem;">مقارنة بين الاستخدام والهدر</h2>
+
+            <div class="bar-wrap">
+                <div class="bar-head">
+                    <span>الاستخدام الفعّال</span>
+                    <span>{{ result.efficiency }}%</span>
+                </div>
+                <div class="track">
+                    <div class="fill used" id="usedBar" data-width="{{ result.efficiency }}"></div>
+                </div>
+            </div>
+
+            <div class="bar-wrap">
+                <div class="bar-head">
+                    <span>نسبة الهدر</span>
+                    <span>{{ result.waste_percentage }}%</span>
+                </div>
+                <div class="track">
+                    <div class="fill waste" id="wasteBar" data-width="{{ result.waste_percentage }}"></div>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <div class="section-title">كفاءة الاستخدام</div>
+    <script>
+        const scoreTarget = {{ result.efficiency }};
+        const scoreCounter = document.getElementById("scoreCounter");
+        const usedBar = document.getElementById("usedBar");
+        const wasteBar = document.getElementById("wasteBar");
 
-    {% if result.efficiency > 80 %}
-        {% set color = "#27ae60" %}
-        {% set bg = "#eafaf1" %}
-    {% elif result.efficiency > 50 %}
-        {% set color = "#f39c12" %}
-        {% set bg = "#fff6e5" %}
-    {% else %}
-        {% set color = "#e74c3c" %}
-        {% set bg = "#fdecea" %}
-    {% endif %}
+        let current = 0;
+        const duration = 1200;
+        const stepTime = 16;
+        const increment = scoreTarget / (duration / stepTime);
 
-    <div class="efficiency" style="color: {{ color }}">
-        {{ result.efficiency }}%
-    </div>
+        const counter = setInterval(() => {
+            current += increment;
+            if (current >= scoreTarget) {
+                current = scoreTarget;
+                clearInterval(counter);
+            }
+            scoreCounter.textContent = current.toFixed(0);
+        }, stepTime);
 
-    <div class="bar">
-        <div class="bar-fill" style="width: {{ result.efficiency }}%; background: {{ color }}"></div>
-    </div>
-
-    <div class="message" style="background: {{ bg }}; color: {{ color }}">
-        {{ result.message }}
-    </div>
-
-    <div class="tip">
-        💡 نصيحة: {{ result.advice }}
-    </div>
-
-    <div class="confidence">
-        مستوى الثقة في التحليل: {{ result.confidence }}%
-    </div>
-
-    <div class="actions">
-        <a href="/" class="btn">تحليل فيديو جديد</a>
-        <a href="/dashboard" class="btn">العودة للوحة التحكم</a>
-    </div>
-
-</div>
-
+        window.addEventListener("load", () => {
+            setTimeout(() => {
+                usedBar.style.width = usedBar.dataset.width + "%";
+                wasteBar.style.width = wasteBar.dataset.width + "%";
+            }, 250);
+        });
+    </script>
 </body>
 </html>
